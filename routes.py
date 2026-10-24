@@ -1,51 +1,37 @@
-from fastapi import APIRouter, Path, HTTPException, status
+from fastapi import APIRouter, Path, HTTPException, status, Request, Depends
+from fastapi.templating import Jinja2Templates
 from schemas import Task, TaskUpdate, TaskList
 
 task_router = APIRouter()
 task_list = []
 
-@task_router.post("/tasks", status_code=201)
-async def add_task(task: Task) -> dict:
-    task_list.append(task)
-    return {"message": "Задача успешно добавлена Ахроржоном!"}
+templates = Jinja2Templates(directory="jinja_templates")
 
-@task_router.get("/tasks", response_model=TaskList)
-async def get_all_tasks() -> dict:
-    return {"tasks": task_list}
+@task_router.post("/tasks")
+async def add_task(request: Request, todo: Task = Depends(Task.as_form)):
+    todo.id = len(task_list) + 1
+    task_list.append(todo)
+    return templates.TemplateResponse("tasks_view.html", {
+        "request": request,
+        "todos": task_list
+    })
+
+@task_router.get("/tasks")
+async def get_all_tasks(request: Request):
+    return templates.TemplateResponse("tasks_view.html", {
+        "request": request,
+        "todos": task_list
+    })
 
 @task_router.get("/tasks/{task_id}")
-async def get_task(task_id: int = Path(..., title="ID задачи для поиска", ge=1)) -> dict:
-    for task in task_list:
-        if task.id == task_id:
-            return {"task": task}
+async def get_task(request: Request, task_id: int = Path(..., title="ID задачи")):
+    for todo in task_list:
+        if todo.id == task_id:
+            return templates.TemplateResponse("tasks_view.html", {
+                "request": request,
+                "todo": todo
+            })
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка: Задача с таким ID не найдена в базе Ахроржона."
+        detail="Задача с таким ID не найдена."
     )
-
-@task_router.put("/tasks/{task_id}")
-async def update_task(task_data: TaskUpdate, task_id: int = Path(..., title="ID задачи для обновления")) -> dict:
-    for task in task_list:
-        if task.id == task_id:
-            task.item = task_data.item
-            return {"message": "Задача успешно обновлена!"}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка: Задача с таким ID не найдена."
-    )
-
-@task_router.delete("/tasks/{task_id}")
-async def delete_task(task_id: int) -> dict:
-    for index in range(len(task_list)):
-        if task_list[index].id == task_id:
-            task_list.pop(index)
-            return {"message": "Задача успешно удалена."}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка: Задача с таким ID не найдена."
-    )
-
-@task_router.delete("/tasks")
-async def delete_all_tasks() -> dict:
-    task_list.clear()
-    return {"message": "Все задачи успешно удалены."}

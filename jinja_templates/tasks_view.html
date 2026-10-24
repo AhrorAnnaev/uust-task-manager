@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<hr>
+<section class="container-fluid">
+    <form method="post">
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="text" name="item" value="{{ item }}" class="form-control" placeholder="Введите новую задачу..." required>
+                <button class="btn btn-outline-primary" type="submit">Добавить</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+{% if todo %}
+    <article class="card container-fluid p-3 mb-3">
+        <h4>ID задачи: {{ todo.id }}</h4>
+        <p><strong>Задача: {{ todo.item }}</strong></p>
+    </article>
+{% else %}
+    <section class="container-fluid">
+        <h2 align="center">Список задач</h2>
+        <div class="card">
+            <ul class="list-group list-group-flush">
+                {% for todo in todos %}
+                <li class="list-group-item">
+                    {{ loop.index }}. <a href="/tasks/{{ loop.index }}">{{ todo.item }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}
